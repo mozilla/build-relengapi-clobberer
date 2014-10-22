@@ -12,6 +12,7 @@ import rest
 from sqlalchemy import and_
 from sqlalchemy import desc
 from sqlalchemy import func
+from sqlalchemy import not_
 from sqlalchemy import or_
 
 from flask import Blueprint
@@ -25,6 +26,7 @@ from models import ClobberTime
 from models import DB_DECLARATIVE_BASE
 
 from relengapi import apimethod
+from relengapi import p
 from relengapi.lib import angular
 from relengapi.lib import api
 
@@ -36,6 +38,11 @@ bp = Blueprint(
     template_folder='templates',
     static_folder='static'
 )
+
+# prefix which denotes release builddirs
+RELEASE_PREFIX = 'rel'
+
+p.clobberer.release.view.doc("Can View Release Branches")
 
 
 @bp.route('/')
@@ -78,6 +85,8 @@ def branches():
     "Return a list of all the branches clobberer knows about."
     session = g.db.session(DB_DECLARATIVE_BASE)
     branches = session.query(Build.branch).distinct()
+    if not p.clobberer.release.view.can():
+        branches = branches.filter(not_(Build.branch.startswith(RELEASE_PREFIX)))
     return [branch[0] for branch in branches]
 
 
@@ -115,6 +124,10 @@ def lastclobber_by_builder(branch):
         sub_query,
         Build.builddir == sub_query.c.builddir,
     ).filter(Build.branch == branch).distinct().order_by(Build.buildername)
+
+    if not p.clobberer.release.view.can():
+        full_query = full_query.filter(
+            not_(Build.builddir.startswith(RELEASE_PREFIX + '-')))
 
     summary = collections.defaultdict(list)
     for result in full_query:
