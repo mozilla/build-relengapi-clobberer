@@ -67,18 +67,18 @@ def clobber(body):
     if current_user.anonymous is False:
         who = current_user.authenticated_email
     for clobber in body:
-        if re.search(RELEASE_PREFIX + '.*', clobber.builddir) is None:
-            clobber_time = ClobberTime(
-                branch=clobber.branch,
-                builddir=clobber.builddir,
-                slave=clobber.slave,
-                lastclobber=int(time.time()),
-                who=who
-            )
-            session.add(clobber_time)
-        else:
+        if re.search('^' + RELEASE_PREFIX + '.*', clobber.builddir) is not None:
             logger.debug('Rejecting clobber of builddir with release prefix: {}'.format(
                 clobber.builddir))
+            continue
+        clobber_time = ClobberTime(
+            branch=clobber.branch,
+            builddir=clobber.builddir,
+            slave=clobber.slave,
+            lastclobber=int(time.time()),
+            who=who
+        )
+        session.add(clobber_time)
     session.commit()
     return None
 
