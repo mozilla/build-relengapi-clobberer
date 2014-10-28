@@ -35,7 +35,7 @@ class Build(db.declarative_base(DB_DECLARATIVE_BASE), db.UniqueMixin):
 
     @classmethod
     def unique_hash(cls, branch, builddir, buildername, *args, **kwargs):
-        return "{}:{}:{}".format(branch, builddir, buildername)
+        return "{}:{}:{}".format(branch, builddir, buildername)  # pragma: no cover
 
     @classmethod
     def unique_filter(cls, query, branch, builddir, buildername, *args, **kwargs):
@@ -43,7 +43,7 @@ class Build(db.declarative_base(DB_DECLARATIVE_BASE), db.UniqueMixin):
             cls.branch == branch,
             cls.builddir == builddir,
             cls.buildername == buildername
-        )
+        )  # pragma: no cover
 
 
 class ClobberTime(db.declarative_base(DB_DECLARATIVE_BASE), db.UniqueMixin):
@@ -72,11 +72,11 @@ class ClobberTime(db.declarative_base(DB_DECLARATIVE_BASE), db.UniqueMixin):
 
     @classmethod
     def unique_hash(cls, build_id, slave, *args, **kwargs):
-        return "{}:{}".format(build_id, slave)
+        return "{}:{}".format(build_id, slave)  # pragma: no cover
 
     @classmethod
     def unique_filter(cls, query, build_id, slave, *args, **kwargs):
         return query.filter(
             cls.build_id == build_id,
             cls.slave == slave
-        )
+        )  # pragma: no cover
