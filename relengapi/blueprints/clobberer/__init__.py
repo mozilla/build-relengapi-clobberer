@@ -112,6 +112,7 @@ def lastclobber_by_builder(branch):
             rest.ClobberTime(
                 branch=build.branch,
                 builddir=build.builddir,
+                buildername=build.buildername,
                 lastclobber=build.max_clobbertime['lastclobber'],
                 who=build.max_clobbertime['who']
             )

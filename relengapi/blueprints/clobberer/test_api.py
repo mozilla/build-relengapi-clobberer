@@ -187,8 +187,7 @@ def test_lastclobber_by_builder(client):
     eq_(len(clobbertimes.get(buildername)), 1)
     # Make sure all of our clobber fields were retrieved
     for key, value in _clobber_args.items():
-        if key is not 'buildername':
-            eq_(clobbertimes.get(buildername)[0].get(key), value)
+        eq_(clobbertimes.get(buildername)[0].get(key), value)
 
 
 @test_context
