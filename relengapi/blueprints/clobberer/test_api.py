@@ -264,11 +264,14 @@ def test_clobber_request_of_release(client):
 def test_clobber_request_of_non_release(client):
     "This looks like a release clobber, but actually isn't."
     session = test_context._app.db.session(DB_DECLARATIVE_BASE)
+    session.query(ClobberTime).delete()
+    session.commit()
+
     clobber_count_initial = session.query(ClobberTime).count()
     not_evil_clobber_args = {
-        'branch': 'none',
-        'builddir': 'directory-' + BUILDDIR_REL_PREFIX + 'tricky',
-        'buildername': 'buildername'
+        'branch': 'noneish',
+        'builddir': 'directory--' + BUILDDIR_REL_PREFIX + 'tricky',
+        'buildername': 'buildernrame'
     }
     session.add(Build(**not_evil_clobber_args))
     session.commit()
@@ -276,7 +279,6 @@ def test_clobber_request_of_non_release(client):
     rv = client.post_json('/clobberer/clobber', data=[not_evil_clobber_args])
     eq_(rv.status_code, 200)
     clobber_count_final = session.query(ClobberTime).count()
-
     eq_(clobber_count_final, clobber_count_initial + 1)
     session.query(Build).delete()
     session.commit()
