@@ -5,7 +5,6 @@
 import json
 import time
 
-from copy import deepcopy
 from nose.tools import assert_greater
 from nose.tools import eq_
 
@@ -32,9 +31,6 @@ _clobber_args_with_slave = {
 }
 
 test_context = TestContext(databases=[DB_DECLARATIVE_BASE], reuse_app=True)
-
-_clobber_args = deepcopy(_clobber_args)
-_clobber_args_with_slave = deepcopy(_clobber_args_with_slave)
 
 
 @test_context
