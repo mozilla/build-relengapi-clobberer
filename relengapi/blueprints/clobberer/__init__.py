@@ -80,7 +80,7 @@ def clobber(body):
             build_id=build.id,
             slave=clobber.slave,
         )
-        clobber_time.lastclobber = int(time.time()),
+        clobber_time.lastclobber = int(time.time())
         clobber_time.who = who
         session.add(clobber_time)
     session.commit()
