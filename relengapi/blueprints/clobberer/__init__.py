@@ -105,7 +105,10 @@ def lastclobber_by_builder(branch):
 
     session = g.db.session(DB_DECLARATIVE_BASE)
 
-    query = session.query(Build).filter(not_(Build.buildername.startswith(BUILDER_REL_PREFIX)))
+    query = session.query(Build).filter(
+        Build.branch == branch,
+        not_(Build.buildername.startswith(BUILDER_REL_PREFIX))
+    ).distinct()
     summary = collections.defaultdict(list)
     for build in query:
         summary[build.buildername].append(
