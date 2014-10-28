@@ -10,6 +10,8 @@ class ClobberRequest(wsme.types.Base):
 
     branch = unicode  #: The branch for this clobber request.
     builddir = unicode  #: The build directory to be clobbered.
+    #: The name of the buildbot builder being targeted
+    buildername = unicode
     #: A specific slave to clobber (defaults to all slaves)
     slave = wsme.types.wsattr(unicode, mandatory=False, default=None)
 
