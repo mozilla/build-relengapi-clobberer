@@ -13,7 +13,7 @@ DB_DECLARATIVE_BASE = 'clobberer'
 class Build(db.declarative_base(DB_DECLARATIVE_BASE), db.UniqueMixin):
     "A clobberable build."
 
-    __tablename__ = 'builds'
+    __tablename__ = 'builds_v1'
 
     id = sa.Column(sa.Integer, primary_key=True)
     branch = sa.Column(sa.String(50), index=True)
@@ -49,7 +49,7 @@ class Build(db.declarative_base(DB_DECLARATIVE_BASE), db.UniqueMixin):
 class ClobberTime(db.declarative_base(DB_DECLARATIVE_BASE), db.UniqueMixin):
     "A clobber request."
 
-    __tablename__ = 'clobber_times'
+    __tablename__ = 'clobber_times_v1'
 
     id = sa.Column(sa.Integer, primary_key=True)
     build_id = sa.Column(
