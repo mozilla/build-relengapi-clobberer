@@ -75,12 +75,13 @@ def clobber(body):
             Build.builddir == clobber.builddir,
             Build.buildername == clobber.buildername
         ).one()
-        clobber_time = ClobberTime(
+        clobber_time = ClobberTime.as_unique(
+            session,
             build_id=build.id,
             slave=clobber.slave,
-            lastclobber=int(time.time()),
-            who=who
         )
+        clobber_time.lastclobber = int(time.time()),
+        clobber_time.who = who
         session.add(clobber_time)
     session.commit()
     return None
