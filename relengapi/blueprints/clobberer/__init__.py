@@ -10,9 +10,7 @@ import time
 import re
 import rest
 
-from sqlalchemy import and_
 from sqlalchemy import desc
-from sqlalchemy import func
 from sqlalchemy import not_
 from sqlalchemy import or_
 
@@ -72,24 +70,21 @@ def clobber(body):
             logger.debug('Rejecting clobber of builddir with release prefix: {}'.format(
                 clobber.builddir))
             continue
-        # The enumerated slaves should still contain a None value since
-        # /lastclobber can make use of it.
-        slaves = [clobber.slave]
-        if clobber.slave is None:
-            # TODO: remove slave enumeration after old clobberer is deprecated
-            slaves_query = session.query(Build.slave).filter(
-                Build.builddir == clobber.builddir).distinct()
-            slaves += [slave[0] for slave in slaves_query]
-        for slave in slaves:
-            clobber_time = ClobberTime(
-                branch=clobber.branch,
-                builddir=clobber.builddir,
-                slave=slave,
-                lastclobber=int(time.time()),
-                who=who
-            )
-            session.add(clobber_time)
+        build = session.query(Build).filter(
+            Build.branch == clobber.branch,
+            Build.builddir == clobber.builddir,
+            Build.buildername == clobber.buildername
+        ).one()
+        clobber_time = ClobberTime.as_unique(
+            session,
+            build_id=build.id,
+            slave=clobber.slave,
+        )
+        clobber_time.lastclobber = int(time.time())
+        clobber_time.who = who
+        session.add(clobber_time)
     session.commit()
+    return None
 
 
 @bp.route('/branches')
@@ -111,73 +106,40 @@ def lastclobber_by_builder(branch):
 
     session = g.db.session(DB_DECLARATIVE_BASE)
 
-    # Isolates the maximum lastclobber for each builddir on a branch
-    max_ct_sub_query = session.query(
-        func.max(ClobberTime.lastclobber).label('lastclobber'),
-        ClobberTime.builddir,
-        ClobberTime.branch
-    ).group_by(
-        ClobberTime.builddir,
-        ClobberTime.branch
-    ).filter(ClobberTime.branch == branch).subquery()
-
-    # Finds the "greatest n per group" by joining with the max_ct_sub_query
-    # This is necessary to get the correct "who" values
-    sub_query = session.query(ClobberTime).join(max_ct_sub_query, and_(
-        ClobberTime.builddir == max_ct_sub_query.c.builddir,
-        ClobberTime.lastclobber == max_ct_sub_query.c.lastclobber,
-        ClobberTime.branch == max_ct_sub_query.c.branch)).subquery()
-
-    # Attaches builddirs, along with their max lastclobber to a buildername
-    full_query = session.query(
-        Build.buildername,
-        Build.builddir,
-        sub_query.c.lastclobber,
-        sub_query.c.who
-    ).outerjoin(
-        sub_query,
-        Build.builddir == sub_query.c.builddir,
-    ).filter(
+    query = session.query(Build).filter(
         Build.branch == branch,
         not_(Build.buildername.startswith(BUILDER_REL_PREFIX))
-        ).distinct().order_by(Build.buildername)
-
+    ).distinct()
     summary = collections.defaultdict(list)
-    for result in full_query:
-        buildername, builddir, lastclobber, who = result
-        summary[buildername].append(
+    for build in query:
+        summary[build.buildername].append(
             rest.ClobberTime(
-                branch=branch,
-                builddir=builddir,
-                lastclobber=lastclobber,
-                who=who
+                branch=build.branch,
+                builddir=build.builddir,
+                buildername=build.buildername,
+                lastclobber=build.max_clobbertime['lastclobber'],
+                who=build.max_clobbertime['who']
             )
         )
     return summary
 
 
-# Clobberer compatability endpoints. These are drop in replacements for the
-# deprecated clobberer service. As such, these endpoints should be deprecated
-# as well.
-
-
 @bp.route('/lastclobber', methods=['GET'])
 def lastclobber():
-    "Get the max/last clobber time for a particular builddir and branch."
+    """
+    Get the max/last clobber time for a particular builddir and branch. Also
+    record any unique visitors as a Build.
+    """
 
     session = g.db.session(DB_DECLARATIVE_BASE)
     now = int(time.time())
     branch = request.args.get('branch')
-    slave = request.args.get('slave')
     builddir = request.args.get('builddir')
     buildername = request.args.get('buildername')
-    master = request.args.get('master')
-    # TODO: Move the builds update to a separate endpoint (requires client changes)
+    slave = request.args.get('slave')
     build = Build.as_unique(
         session,
         branch=branch,
-        master=master,
-        slave=slave,
         builddir=builddir,
         buildername=buildername,
     )
@@ -187,8 +149,7 @@ def lastclobber():
     session.commit()
 
     max_ct = session.query(ClobberTime).filter(
-        ClobberTime.builddir == builddir,
-        ClobberTime.branch == branch,
+        ClobberTime.build_id == build.id,
         # a NULL slave value signifies all slaves
         or_(ClobberTime.slave == slave, ClobberTime.slave == None)  # noqa
     ).order_by(desc(ClobberTime.lastclobber)).first()
@@ -198,7 +159,7 @@ def lastclobber():
         # builddir, lastclobber, who = urlib2.open.split(':')
         # as such it's important for this to be plain text and have
         # no extra colons within the field values themselves
-        return "{}:{}:{}\n".format(max_ct.builddir, max_ct.lastclobber, max_ct.who)
+        return "{}:{}:{}\n".format(max_ct.build.builddir, max_ct.lastclobber, max_ct.who)
     return ""
 
 

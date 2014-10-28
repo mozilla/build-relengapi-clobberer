@@ -50,7 +50,8 @@ angular.module('clobberer').controller('ClobberController',
         for (var index = 0; index < arrayLength; index++) {
             clobberData.push({
                 "branch": clobberTimes[index].branch,
-                "builddir": clobberTimes[index].builddir
+                "builddir": clobberTimes[index].builddir,
+                "buildername": clobberTimes[index].buildername
             })
         }
         restapi.post('/clobberer/clobber', clobberData).
