@@ -54,7 +54,7 @@ class ClobberTime(db.declarative_base(DB_DECLARATIVE_BASE), db.UniqueMixin):
     id = sa.Column(sa.Integer, primary_key=True)
     build_id = sa.Column(
         sa.Integer,
-        sa.ForeignKey('builds.id'),
+        sa.ForeignKey('builds_v1.id'),
         nullable=False,
     )
     build = sa.orm.relationship(
